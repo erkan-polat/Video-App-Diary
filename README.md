@@ -1,50 +1,171 @@
-# Welcome to your Expo app 👋
+# 📹 React Native - MP4 Video Cropping Guide
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This project demonstrates **how to crop the first 5 seconds of an MP4 video using Expo and FFmpeg**. Users can select a video, crop the first 5 seconds, and navigate to `crop-step3` to preview the cropped video.
 
-## Get started
+---
 
-1. Install dependencies
+## 📌 **1. Requirements**
+Before running the project, ensure you have the following:
 
-   ```bash
-   npm install
-   ```
+- **Node.js** (v16 or later)
+- **Expo CLI** (If not installed: `npm install -g expo-cli`)
+- **Android/iOS device or emulator** (Expo Go is not supported!)
+- **Expo Dev Client**
+- **FFmpeg Kit**
 
-2. Start the app
+---
 
-   ```bash
-    npx expo start
-   ```
+## 🚀 **2. Installation & Dependencies**
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+First, clone the repository:
+```sh
+git clone https://github.com/username/expo-video-crop.git
+cd expo-video-crop
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Install dependencies:
+```sh
+npm install
+```
 
-## Learn more
+Install FFmpeg Kit and Expo Dev Client:
+```sh
+npm install ffmpeg-kit-react-native
+npx expo install expo-dev-client
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Run the project using Expo Dev Client:
+```sh
+npx expo prebuild
+npx expo run:android  # For Android
+npx expo run:ios     # For iOS
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+> **Note:** FFmpeg **does not work in Expo Go**! You must use **Expo Dev Client**.
 
-## Join the community
+---
 
-Join our community of developers creating universal apps.
+## 📂 **3. Project Structure**
+```
+expo-video-crop/
+│── app/
+│   ├── tabs/
+│   │   ├── crop.js          
+│   │   ├── crop-step2.js    
+│   │   ├── crop-step3.js    
+│   │   ├── _layout.js    
+│   │   ├── cropped-videos.js    
+│   │   ├── details.js        
+│   │   ├── edit.js
+│   │   ├── index.js
+│   │   ├── SavedVideos.js   
+│   │   ├── cropped-videos.js 
+│   │   ├── crop-video.js    
+│── assets/
+│── package.json
+│── README.md
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+---
+
+## 🎬 **4. Usage Instructions**
+
+### 1️⃣ **Selecting a Video (crop.js)**
+The user selects a video from the gallery, which is then passed to `crop-step2.js`.
+
+```javascript
+const pickVideo = async () => {
+  let result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+    allowsEditing: false,
+    quality: 1,
+  });
+
+  if (!result.canceled) {
+    const selectedVideoUri = result.assets[0].uri;
+    const newVideoUri = `${FileSystem.cacheDirectory}selected_video.mp4`;
+
+    await FileSystem.copyAsync({ from: selectedVideoUri, to: newVideoUri });
+    router.push(`/crop-step2?video=${encodeURIComponent(newVideoUri)}`);
+  }
+};
+```
+
+### 2️⃣ **Cropping the Video (crop-step2.js)**
+When the user presses the **Crop** button, FFmpeg is used to **extract the first 5 seconds**.
+
+```javascript
+const cropVideo = async () => {
+  setIsProcessing(true);
+  const outputUri = `${FileSystem.cacheDirectory}cropped_${Date.now()}.mp4`;
+
+  const command = `-i "${video}" -ss 0 -t 5 -c:v copy -c:a copy "${outputUri}"`;
+
+  try {
+    await FFmpegKit.execute(command).then(async (session) => {
+      const returnCode = await session.getReturnCode();
+      if (returnCode.isSuccess()) {
+        router.push(`/crop-step3?video=${encodeURIComponent(outputUri)}`);
+      } else {
+        Alert.alert("Error", "Failed to crop video.");
+      }
+    });
+  } catch (error) {
+    Alert.alert("Error", "Something went wrong while cropping.");
+  } finally {
+    setIsProcessing(false);
+  }
+};
+```
+
+### 3️⃣ **Displaying the Cropped Video (crop-step3.js)**
+The cropped video is displayed using the `Video` component.
+
+```javascript
+<Video source={{ uri: video }} useNativeControls resizeMode="contain" style={styles.video} />
+```
+
+---
+
+## 🛠 **5. Troubleshooting**
+
+### ❌ `Cannot read property 'ffmpegSession' of null`
+✔ **Solution:** Ensure that `expo-dev-client` is installed before running FFmpeg.
+
+### ❌ `FFmpeg Error: File not found`
+✔ **Solution:** Save the video in **`cacheDirectory` instead of `documentDirectory`**.
+```js
+const newVideoUri = `${FileSystem.cacheDirectory}selected_video.mp4`;
+```
+
+### ❌ `Failed to load video`
+✔ **Solution:** Ensure the Expo `Video` component is correctly reading the file path.
+
+```js
+console.log("📌 Video Path:", video);
+```
+
+---
+
+## ✅ **6. Conclusion**
+🚀 **With this project:**
+- 📂 Users can **select an MP4 video**.
+- ✂️ **FFmpeg extracts the first 5 seconds**.
+- 🎬 **Cropped video is displayed on `crop-step3`**.
+
+📌 **If you successfully set up the project, consider exploring more video processing features with FFmpeg!** 🚀🔥
+
+---
+
+## 🔗 **7. Resources**
+- [FFmpeg Commands](https://ffmpeg.org/ffmpeg.html)
+- [Expo Video Component](https://docs.expo.dev/versions/latest/sdk/video/)
+
+## **8. Screen**
+![img.png](img.png)
+![img_1.png](img_1.png)
+![img_2.png](img_2.png)
+![img_3.png](img_3.png)
+![img_4.png](img_4.png)
+![img_5.png](img_5.png)
+![img_6.png](img_6.png)
