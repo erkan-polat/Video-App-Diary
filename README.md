@@ -130,20 +130,8 @@ The cropped video is displayed using the `Video` component.
 ## 🛠 **5. Troubleshooting**
 
 ### ❌ `Cannot read property 'ffmpegSession' of null`
-✔ **Solution:** Ensure that `expo-dev-client` is installed before running FFmpeg.
-
 ### ❌ `FFmpeg Error: File not found`
-✔ **Solution:** Save the video in **`cacheDirectory` instead of `documentDirectory`**.
-```js
-const newVideoUri = `${FileSystem.cacheDirectory}selected_video.mp4`;
-```
-
 ### ❌ `Failed to load video`
-✔ **Solution:** Ensure the Expo `Video` component is correctly reading the file path.
-
-```js
-console.log("📌 Video Path:", video);
-```
 
 ---
 
